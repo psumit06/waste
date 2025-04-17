@@ -1,0 +1,59 @@
+Response code:500
+Response message:javax.script.ScriptException: org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+Script127.groovy: 20: Unexpected character: '"' @ line 20, column 49.
+   e = session.createTextMessage("<qdx:Qdib
+
+
+@Grab(group='com.ibm.mq',
+module='com.ibm.mq.allclient',
+version='9.4.2.0')
+import com.ibm.mq.jms.MQQueueConnectionFactory
+import com.ibm.msg.client.wmq.WMQConstants
+import javax.jms.*
+
+def factory = new MQQueueConnectionFactory()
+factory.setHostName("mdmamqq.qdx.com")
+factory.setPort(5030)
+factory.setTransportType(WMQConstants.WMQ_CM_CLIENT)
+factory.setQueueManager("MDMAMQQ")
+factory.setChannel("MULLOADTEST.SVRCONN")
+
+Connection conn=factory.createConnection()
+Session session=conn.createSession(false,Session.AUTO_ACKNWLEDGE)
+Queue queue = session.createQueue("MUL.HUB.ORD.MSG.STG.SVC")
+MessageProducer producer = session.createProducer(queue)
+
+TextMessage message = session.createTextMessage("<qdx:QdibEnvelope xmlns:qdx=\"http://www.questdiagnostics.com/QDIB\" xmlns:schemaLocation=\"http://www.questdiagnostics.com/QDIBEnvelope.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"> 
+<header>
+<srcId>YGS.HUB.QDX</srcId>
+<appTs>${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}</appTs>
+<log>Y</log>
+<destId>IMP.HUB.ORD.QDX</destId>
+<type>HubOrder-FQHCTEST</type>
+</header>
+<body>
+<rec><md>
+<key><nm>HubOrderTransactionNumber</nm><vl>${__RandomString(11,abcdefghijklmnopqrstuvwxyz,p_random11)}${__Random(22222,99999,p_Random1)}${__Random(11111,99999,p_Random2)}${p_random11}</vl></key>
+<key><nm>siteId</nm><vl>YGS</vl></key>
+<key><nm>clientNum</nm><vl>97502840</vl></key>
+<key><nm>reqNum</nm><vl>LT${p_VusrID}_${__time(yyyyMMddHHmmss,p_CurrentDT)}</vl></key>
+<key><nm>PatExtId</nm><vl>YGS${__Random(1111111,9999999,p_PatientID)}</vl></key>
+</md>
+<pl><![CDATA[MSH|^~\&|HUBWS|97502840||YGS|${__time(yyyyMMddHHmmss)}||ORM^O01|21736907|D|2.3
+PID|1|YGS${p_PatientID}|||LOADTEST^FQHC|${__RandomString(6,ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz,p_PatientFN)}|${p_DOB}|${p_Gender.Type}|||||${p_Random1}${p_Random2}
+PV1|1|A
+IN1|1|AETNA|AETNA|AETNA|900 COTTAGE GROVE ROAD^^BLOOMFIELD^CT^06002-2920|||ABCD||||||||LT${p_PatientFN}^LT${p_PatientFN}|2||${p_DemographicAddress1}^^${p_DemographicCity} ^${p_DemographicState}^${p_DemographicZipCode}|||||||||||||||||U${p_Random1}${p_Random2}|||||||||||T
+GT1|1||${p_PatientFN}^LTGuarantor||${p_DemographicAddress1}^^${p_DemographicCity}^${p_DemographicState}^${p_DemographicZipCode}|${p_Random1}${p_Random2}|||||||20130109|||||||||||||||||||20130901
+ZG1|20230901|20231230|135
+ORC|NW|LT${p_VusrID}_${p_CurrentDT}
+OBR|1|LT${p_VusrID}_${p_CurrentDT}||^^^899^TSH|||2023102${__Random(1,9,)}|||||||||1326170689^ANTIS^SATWATIE
+DG1|1||R519|||W
+]]></pl>
+</rec>
+</body>
+</qdx:QdibEnvelope>")
+producer.send(message)
+
+producer.close()
+session.close()
+conn.close()
