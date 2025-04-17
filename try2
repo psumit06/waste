@@ -1,0 +1,77 @@
+@Grab(group='com.ibm.mq', module='com.ibm.mq.allclient', version='9.4.2.0')
+
+import com.ibm.mq.jms.MQQueueConnectionFactory
+import com.ibm.msg.client.wmq.WMQConstants
+import javax.jms.*
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Random
+
+// --- Dummy variables to simulate JMeter variables ---
+def p_random11 = "abcxyz"
+def p_Random1 = "12345"
+def p_Random2 = "67890"
+def p_VusrID = "TESTUSER"
+def p_CurrentDT = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+def p_PatientID = "7654321"
+def p_PatientFN = "John"
+def p_DOB = "19890101"
+def p_Gender_Type = "M"
+def p_DemographicAddress1 = "123 Main St"
+def p_DemographicCity = "Springfield"
+def p_DemographicState = "NY"
+def p_DemographicZipCode = "12345"
+
+def factory = new MQQueueConnectionFactory()
+factory.setHostName("mdmamqq.qdx.com")
+factory.setPort(5030)
+factory.setTransportType(WMQConstants.WMQ_CM_CLIENT)
+factory.setQueueManager("MDMAMQQ")
+factory.setChannel("MULLOADTEST.SVRCONN")
+
+Connection conn = factory.createConnection()
+Session session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
+Queue queue = session.createQueue("MUL.HUB.ORD.MSG.STG.SVC")
+MessageProducer producer = session.createProducer(queue)
+
+def appTs = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"))
+
+String payload = """<qdx:QdibEnvelope xmlns:qdx="http://www.questdiagnostics.com/QDIB" 
+xmlns:schemaLocation="http://www.questdiagnostics.com/QDIBEnvelope.xsd" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<header>
+<srcId>YGS.HUB.QDX</srcId>
+<appTs>${appTs}</appTs>
+<log>Y</log>
+<destId>IMP.HUB.ORD.QDX</destId>
+<type>HubOrder-FQHCTEST</type>
+</header>
+<body>
+<rec><md>
+<key><nm>HubOrderTransactionNumber</nm><vl>${p_random11}${p_Random1}${p_Random2}${p_random11}</vl></key>
+<key><nm>siteId</nm><vl>YGS</vl></key>
+<key><nm>clientNum</nm><vl>97502840</vl></key>
+<key><nm>reqNum</nm><vl>LT${p_VusrID}_${p_CurrentDT}</vl></key>
+<key><nm>PatExtId</nm><vl>YGS${p_PatientID}</vl></key>
+</md>
+<pl><![CDATA[
+MSH|^~\\&|HUBWS|97502840||YGS|${p_CurrentDT}||ORM^O01|21736907|D|2.3
+PID|1|YGS${p_PatientID}|||LOADTEST^FQHC|${p_PatientFN}|${p_DOB}|${p_Gender_Type}|||||${p_Random1}${p_Random2}
+PV1|1|A
+IN1|1|AETNA|AETNA|AETNA|900 COTTAGE GROVE ROAD^^BLOOMFIELD^CT^06002-2920|||ABCD||||||||LT${p_PatientFN}^LT${p_PatientFN}|2||${p_DemographicAddress1}^^${p_DemographicCity}^${p_DemographicState}^${p_DemographicZipCode}|||||||||||||||||U${p_Random1}${p_Random2}|||||||||||T
+GT1|1||${p_PatientFN}^LTGuarantor||${p_DemographicAddress1}^^${p_DemographicCity}^${p_DemographicState}^${p_DemographicZipCode}|${p_Random1}${p_Random2}|||||||20130109|||||||||||||||||||20130901
+ZG1|20230901|20231230|135
+ORC|NW|LT${p_VusrID}_${p_CurrentDT}
+OBR|1|LT${p_VusrID}_${p_CurrentDT}||^^^899^TSH|||2023102${new Random().nextInt(9) + 1}|||||||||1326170689^ANTIS^SATWATIE
+DG1|1||R519|||W
+]]></pl>
+</rec>
+</body>
+</qdx:QdibEnvelope>"""
+
+TextMessage message = session.createTextMessage(payload)
+producer.send(message)
+
+producer.close()
+session.close()
+conn.close()
