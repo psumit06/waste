@@ -1,1 +1,21 @@
-timepass
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.concurrent.ThreadLocalRandom
+
+// Age range: 18 to 60
+int minAge = 18
+int maxAge = 60
+
+LocalDate today = LocalDate.now()
+int randomAge = ThreadLocalRandom.current().nextInt(minAge, maxAge + 1)
+
+LocalDate birthYear = today.minusYears(randomAge)
+int randomDayOfYear = ThreadLocalRandom.current().nextInt(1, birthYear.lengthOfYear() + 1)
+
+LocalDate randomDOB = birthYear.withDayOfYear(randomDayOfYear)
+
+// Format as yyyyMMdd
+String formattedDOB = randomDOB.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+
+// Store in variable
+vars.put("random_dob", formattedDOB)
