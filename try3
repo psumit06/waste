@@ -1,0 +1,68 @@
+1. Reduce Table Scan Size with Filtered CTEs (Early Filtering)
+As shown earlier, this helps Snowflake prune micro-partitions efficiently.
+
+Why:
+
+Even if there are no indexes, Snowflake uses columnar storage with metadata per micro-partition.
+
+If your WHERE clause can be applied before the join, the engine skips scanning unrelated partitions.
+
+Use this version of your query:
+
+sql
+Copy
+Edit
+WITH filtered_person AS (
+    SELECT person_id, PM_EID, first_name, last_name, address1, address2,
+           city, state, country, zip_code, email, mobile_phone, primary_phone
+    FROM CDW_DB.REFINED.DIM_PERSON
+    WHERE PM_EID = '123468898'
+),
+filtered_preferences AS (
+    SELECT person_id, source_system, PREFERENCE_TYPE, channel_type, channel_value
+    FROM CDW_DB.REFINED.QRR_PREFERENCE_FACT
+    WHERE PREFERENCE_TYPE IN ('PFT_BILL_EMAIL', 'PFT_BILL_SMS', 'PFT_BILL_PAPER')
+)
+
+SELECT 
+    d.PM_EID,
+    d.person_id,
+    d.first_name,
+    d.last_name,
+    d.address1,
+    d.address2,
+    d.city,
+    d.state,
+    d.country,
+    d.zip_code,
+    d.email,
+    d.mobile_phone,
+    d.primary_phone,
+    f.source_system,
+    f.PREFERENCE_TYPE,
+    f.channel_type,
+    f.channel_value
+FROM filtered_person d
+JOIN filtered_preferences f
+  ON d.person_id = f.person_id;
+ 2. Use Result Caching When Possible
+If the data isn’t changing often, ensure result caching is used by:
+
+Not including volatile functions like CURRENT_TIMESTAMP.
+
+Avoiding LIMIT during production use.
+
+Run the query once — check if the next identical run is near-instant. If yes, result cache is working.
+
+ 3. Partition Pruning with Clustering Keys
+You can’t add indexes, but clustering keys help Snowflake organize data inside micro-partitions to reduce scan effort.
+
+If your data size is large (say, 1B+ rows), request your DBA to:
+
+sql
+Copy
+Edit
+ALTER TABLE CDW_DB.REFINED.DIM_PERSON CLUSTER BY (PM_EID);
+ALTER TABLE CDW_DB.REFINED.QRR_PREFERENCE_FACT CLUSTER BY (PREFERENCE_TYPE, person_id);
+After clustering, Snowflake will reorganize the table over time and future scans become faster (especially for repeated queries).
+
