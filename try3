@@ -66,3 +66,7 @@ ALTER TABLE CDW_DB.REFINED.DIM_PERSON CLUSTER BY (PM_EID);
 ALTER TABLE CDW_DB.REFINED.QRR_PREFERENCE_FACT CLUSTER BY (PREFERENCE_TYPE, person_id);
 After clustering, Snowflake will reorganize the table over time and future scans become faster (especially for repeated queries).
 
+/////////////////////////////////////////////////////////////////////////////
+
+ALTER TABLE cdw_db.refined.patient_master CLUSTER BY (PM_EID);
+
