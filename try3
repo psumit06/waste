@@ -66,6 +66,21 @@ ALTER TABLE CDW_DB.REFINED.DIM_PERSON CLUSTER BY (PM_EID);
 ALTER TABLE CDW_DB.REFINED.QRR_PREFERENCE_FACT CLUSTER BY (PREFERENCE_TYPE, person_id);
 After clustering, Snowflake will reorganize the table over time and future scans become faster (especially for repeated queries).
 
+/////////////////////////
+
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.ZoneOffset
+
+// Get current UTC time and add 4 hours
+def futureTime = ZonedDateTime.now(ZoneOffset.UTC).plusHours(4)
+
+// Format as yyyy-MM-dd'T'HH:mm:ss'Z'
+def formattedTime = futureTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"))
+
+// Store in JMeter variable
+vars.put("futureTime", formattedTime)
+///////////////////////////////////////////////
 
 import org.apache.jmeter.protocol.http.control.Cookie
 import org.apache.jmeter.protocol.http.control.CookieManager
