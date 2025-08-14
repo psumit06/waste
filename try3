@@ -96,3 +96,34 @@ cookieManager.add(new Cookie("ak_bmsc", "initial_cookie_value", "yourdomain.com"
 
 ALTER TABLE cdw_db.refined.patient_master CLUSTER BY (PM_EID);
 
+/////////////////////////////////////////////////////////////////////////////
+
+import java.nio.file.*
+import java.time.LocalDateTime
+
+// Log file path
+def logFile = "/tmp/jmeter_request_response.log"
+
+// Get request and response
+def requestData = prev.getSamplerData()
+def responseData = prev.getResponseDataAsString()
+def responseCode = prev.getResponseCode()
+def url = prev.getUrl()
+
+// Format log entry
+def logEntry = """
+===== ${LocalDateTime.now()} =====
+URL: ${url}
+Response Code: ${responseCode}
+
+--- Request ---
+${requestData}
+
+--- Response ---
+${responseData}
+==============================
+"""
+
+// Append to log file
+Files.write(Paths.get(logFile), logEntry.getBytes("UTF-8"), StandardOpenOption.CREATE, StandardOpenOption.APPEND)
+
