@@ -22,3 +22,6 @@ if (input != null && input.contains("','")) {
 } else {
     log.warn("JSR223 PreProcessor: Input is null or in unexpected format: ${input}")
 }
+
+
+'owedAmt':'([^']+)'.*?'userstate':'([^']+)
