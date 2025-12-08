@@ -1,0 +1,72 @@
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.entity.StringEntity
+import org.apache.http.impl.client.HttpClients
+import org.apache.http.util.EntityUtils
+import groovy.json.JsonSlurper
+import java.net.URLEncoder
+
+// ----------- CONFIGURATION -----------------
+
+def username       = vars.get("SF_USERNAME")            // e.g. sumit@company.com.sandbox
+def password       = vars.get("SF_PASSWORD")            // account password
+def token          = vars.get("SF_TOKEN")               // security token
+def loginUrl       = "https://test.salesforce.com"      // sandbox: https://test.salesforce.com , prod: https://login.salesforce.com
+def soqlQuery      = "SELECT Id, Name FROM Account LIMIT 5"
+
+// -------------------------------------------
+
+// Build login body
+def loginBody = "grant_type=password" +
+                "&client_id=${URLEncoder.encode(vars.get('SF_CLIENT_ID'),'UTF-8')}" +
+                "&client_secret=${URLEncoder.encode(vars.get('SF_CLIENT_SECRET'),'UTF-8')}" +
+                "&username=${URLEncoder.encode(username,'UTF-8')}" +
+                "&password=${URLEncoder.encode(password + token,'UTF-8')}"
+
+def client = HttpClients.createDefault()
+
+try {
+    // ----------- STEP 1: LOGIN ---------------
+    def loginPost = new HttpPost(loginUrl + "/services/oauth2/token")
+    loginPost.setHeader("Content-Type", "application/x-www-form-urlencoded")
+    loginPost.setEntity(new StringEntity(loginBody))
+
+    def loginResp = client.execute(loginPost)
+    def loginJson = EntityUtils.toString(loginResp.getEntity())
+    def loginData = new JsonSlurper().parseText(loginJson)
+
+    if (loginResp.getStatusLine().statusCode != 200) {
+        SampleResult.setSuccessful(false)
+        SampleResult.setResponseData("Salesforce Login Failed:\n" + loginJson, "UTF-8")
+        return
+    }
+
+    def accessToken = loginData.access_token
+    def instanceUrl = loginData.instance_url
+
+    // ----------- STEP 2: RUN SOQL QUERY -------
+    def encodedQuery = URLEncoder.encode(soqlQuery, "UTF-8")
+    def queryUrl = "${instanceUrl}/services/data/v57.0/query/?q=${encodedQuery}"
+
+    def getReq = new HttpGet(queryUrl)
+    getReq.setHeader("Authorization", "Bearer " + accessToken)
+
+    def queryResp = client.execute(getReq)
+    def queryJson = EntityUtils.toString(queryResp.getEntity())
+
+    if (queryResp.getStatusLine().statusCode != 200) {
+        SampleResult.setSuccessful(false)
+        SampleResult.setResponseData("SOQL Query Failed:\n" + queryJson, "UTF-8")
+        return
+    }
+
+    // ----------- SUCCESS RESPONSE -------------
+    SampleResult.setSuccessful(true)
+    SampleResult.setResponseData("Login + Query Successful:\n" + queryJson, "UTF-8")
+
+} catch (Exception ex) {
+    SampleResult.setSuccessful(false)
+    SampleResult.setResponseData("Exception:\n" + ex.toString(), "UTF-8")
+} finally {
+    client.close()
+}
