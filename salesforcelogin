@@ -70,3 +70,18 @@ try {
 } finally {
     client.close()
 }
+
+
+//////////////////////////////////////////
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:partner.soap.sforce.com">
+   <soapenv:Header></soapenv:Header>
+   <soapenv:Body>
+      <urn:login>
+         <urn:username>your_username@example.com</urn:username>
+         <urn:password>yourPasswordAndSecurityToken</urn:password>
+      </urn:login>
+   </soapenv:Body>
+</soapenv:Envelope>
