@@ -19,3 +19,12 @@ String formattedDOB = randomDOB.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
 
 // Store in variable
 vars.put("random_dob", formattedDOB)
+
+//////////////////////
+
+for u in $(getent passwd | awk -F: '$3>=10000 {print $1}'); do
+    if sssctl user-checks "$u" 2>/dev/null | grep -q "Password expired: true"; then
+        echo "$u"
+    fi
+done
+
