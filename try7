@@ -1,0 +1,86 @@
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.impl.client.HttpClients
+import org.apache.http.entity.StringEntity
+
+// =======================
+// INPUTS (from JMeter)
+// =======================
+def username = vars.get("sf_username")
+def password = vars.get("sf_password")
+def token    = vars.get("sf_token")
+
+def loginUrl = "https://questdiagnosticscommercial--ncsareqa.sandbox.my.salesforce.com"
+def soapEndpoint = "${loginUrl}/services/Soap/u/50.0"
+
+// =======================
+// SOAP LOGIN PAYLOAD
+// =======================
+def soapBody = """
+<env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
+ <env:Body>
+  <n1:login xmlns:n1="urn:partner.soap.sforce.com">
+   <n1:username>${username}</n1:username>
+   <n1:password>${password}${token}</n1:password>
+  </n1:login>
+ </env:Body>
+</env:Envelope>
+"""
+
+// =======================
+// HTTP CALL
+// =======================
+def client = HttpClients.createDefault()
+def post = new HttpPost(soapEndpoint)
+post.setHeader("Content-Type", "text/xml; charset=UTF-8")
+post.setHeader("SOAPAction", "login")
+post.setEntity(new StringEntity(soapBody, "UTF-8"))
+
+def response = client.execute(post)
+def responseBody = response.getEntity().getContent().getText()
+
+// =======================
+// PARSE RESPONSE
+// =======================
+if (!responseBody.contains("<sessionId>")) {
+    log.error("Salesforce Login Failed")
+    log.error(responseBody)
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage("Salesforce login failed")
+    return
+}
+
+def sessionId = responseBody.find(/<sessionId>(.*?)<\/sessionId>/) { it[1] }
+def serverUrl = responseBody.find(/<serverUrl>(.*?)<\/serverUrl>/) { it[1] }
+def userId    = responseBody.find(/<userId>(.*?)<\/userId>/) { it[1] }
+def orgId     = responseBody.find(/<organizationId>(.*?)<\/organizationId>/) { it[1] }
+
+// =======================
+// STORE EVERYTHING
+// =======================
+vars.put("sf_accessToken", sessionId)
+vars.put("sf_instanceUrl", serverUrl.substring(0, serverUrl.indexOf("/services")))
+vars.put("sf_userId", userId)
+vars.put("sf_orgId", orgId)
+
+// =======================
+// OPTIONAL: LOG OUTPUT
+// =======================
+def result = [
+    status: "SUCCESS",
+    auth: [
+        accessToken: sessionId,
+        instanceUrl: vars.get("sf_instanceUrl")
+    ],
+    user: [
+        id: userId,
+        organizationId: orgId,
+        username: username
+    ],
+    timestamp: new Date().toString()
+]
+
+log.info(JsonOutput.prettyPrint(JsonOutput.toJson(result)))
