@@ -8,3 +8,45 @@
       </urn:login>
    </soapenv:Body>
 </soapenv:Envelope>
+
+
+
+const jsforce = require('jsforce');
+
+const username = process.argv[2];
+const password = process.argv[3];
+const token = process.argv[4];
+
+if (!username || !password || !token) {
+    console.error("Missing arguments");
+    process.exit(1);
+}
+
+async function login() {
+    const conn = new jsforce.Connection({
+        loginUrl: 'https://questdiagnosticscommercial--ncsareqa.sandbox.my.salesforce.com'
+    });
+
+    await conn.login(username, password + token);
+
+    return {
+        accessToken: conn.accessToken,
+        instanceUrl: conn.instanceUrl
+    };
+}
+
+login()
+    .then(result => {
+        console.log(JSON.stringify({
+            status: "SUCCESS",
+            data: result
+        }));
+        setTimeout(() => process.exit(0), 200);
+    })
+    .catch(err => {
+        console.error(JSON.stringify({
+            status: "FAILURE",
+            error: err.message
+        }));
+        setTimeout(() => process.exit(1), 200);
+    });
