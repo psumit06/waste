@@ -1,0 +1,44 @@
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.impl.client.HttpClients
+import org.apache.http.entity.StringEntity
+
+def accessToken = vars.get("sf_access_token")
+def instanceUrl = vars.get("sf_instance_url")
+def apiVersion  = vars.get("sf_api_version")
+
+def soapEndpoint = "${instanceUrl}/services/Soap/u/${apiVersion}"
+
+def soap =
+"""
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"
+              xmlns:urn="urn:partner.soap.sforce.com">
+ <env:Header>
+  <urn:SessionHeader>
+   <urn:sessionId>${accessToken}</urn:sessionId>
+  </urn:SessionHeader>
+ </env:Header>
+ <env:Body>
+  <urn:getUserInfo/>
+ </env:Body>
+</env:Envelope>
+"""
+
+def post = new HttpPost(soapEndpoint)
+post.setHeader("Content-Type", "text/xml")
+post.setEntity(new StringEntity(soap, "UTF-8"))
+
+def client = HttpClients.createDefault()
+def response = client.execute(post)
+def body = response.getEntity().getContent().getText()
+
+if (!body.contains("<sessionId>")) {
+    log.error("SOAP session mint failed")
+    log.error(body)
+    AssertionResult.setFailure(true)
+    return
+}
+
+def uiSession = (body =~ /<sessionId>(.*?)<\/sessionId>/)[0][1]
+vars.put("sf_ui_session", uiSession)
+
+log.info("UI session minted")
