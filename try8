@@ -1,0 +1,103 @@
+import com.nimbusds.jwt.*
+import com.nimbusds.jose.*
+import com.nimbusds.jose.crypto.*
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.impl.client.HttpClients
+import org.apache.http.entity.StringEntity
+import groovy.json.JsonSlurper
+import java.security.*
+import java.security.spec.*
+
+// ============================
+// READ VARIABLES
+// ============================
+def clientId = vars.get("sf_client_id")
+def username = vars.get("sf_username")
+def loginUrl = vars.get("sf_login_url")
+
+// Private key as STRING (PEM or Base64)
+def privateKeyText = vars.get("sf_private_key")
+
+if (!clientId || !username || !loginUrl || !privateKeyText) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage("Missing JWT configuration variables")
+    return
+}
+
+// ============================
+// NORMALIZE PRIVATE KEY
+// ============================
+// Remove PEM headers/footers if present
+def normalizedKey = privateKeyText
+        .replaceAll("-----BEGIN (.*)-----", "")
+        .replaceAll("-----END (.*)-----", "")
+        .replaceAll("\\s", "")
+
+// Base64 decode
+byte[] keyBytes
+try {
+    keyBytes = normalizedKey.decodeBase64()
+} catch (Exception e) {
+    log.error("Invalid Base64 private key")
+    AssertionResult.setFailure(true)
+    return
+}
+
+// Build RSA private key (PKCS8)
+PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes)
+PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpec)
+
+// ============================
+// BUILD JWT ASSERTION
+// ============================
+def now = new Date()
+
+def claims = new JWTClaimsSet.Builder()
+        .issuer(clientId)          // Connected App Consumer Key
+        .subject(username)          // Salesforce username
+        .audience(loginUrl)         // https://test.salesforce.com OR login.salesforce.com
+        .issueTime(now)
+        .expirationTime(new Date(now.time + 3 * 60 * 1000)) // 3 min
+        .build()
+
+def header = new JWSHeader(JWSAlgorithm.RS256)
+def jwt = new SignedJWT(header, claims)
+
+def signer = new RSASSASigner(privateKey)
+jwt.sign(signer)
+
+def assertion = jwt.serialize()
+
+// ============================
+// TOKEN REQUEST
+// ============================
+def post = new HttpPost("${loginUrl}/services/oauth2/token")
+post.setHeader("Content-Type", "application/x-www-form-urlencoded")
+
+def body =
+        "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" +
+        "&assertion=" + assertion
+
+post.setEntity(new StringEntity(body, "UTF-8"))
+
+def client = HttpClients.createDefault()
+def response = client.execute(post)
+def responseText = response.getEntity().getContent().getText()
+
+if (!responseText.contains("access_token")) {
+    log.error("JWT OAuth failed for user: " + username)
+    log.error(responseText)
+    AssertionResult.setFailure(true)
+    return
+}
+
+// ============================
+// PARSE RESPONSE
+// ============================
+def json = new JsonSlurper().parseText(responseText)
+
+vars.put("sf_access_token", json.access_token)
+vars.put("sf_instance_url", json.instance_url)
+vars.put("sf_token_type", json.token_type)
+
+log.info("JWT OAuth SUCCESS for user: " + username)
