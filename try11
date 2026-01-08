@@ -1,0 +1,43 @@
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.impl.client.HttpClients
+import org.apache.http.entity.StringEntity
+
+def accessToken = vars.get("sf_access_token")
+def instanceUrl = vars.get("sf_instance_url")
+
+def soapEndpoint = instanceUrl + "/services/Soap/u/58.0"
+
+def soapBody = """
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
+ <env:Header>
+  <urn:SessionHeader xmlns:urn="urn:partner.soap.sforce.com">
+    <urn:sessionId>${accessToken}</urn:sessionId>
+  </urn:SessionHeader>
+ </env:Header>
+ <env:Body>
+  <urn:getUserInfo xmlns:urn="urn:partner.soap.sforce.com"/>
+ </env:Body>
+</env:Envelope>
+"""
+
+def client = HttpClients.createDefault()
+def post = new HttpPost(soapEndpoint)
+
+post.setHeader("Content-Type", "text/xml")
+post.setEntity(new StringEntity(soapBody, "UTF-8"))
+
+def response = client.execute(post)
+def body = response.getEntity().getContent().getText()
+
+if (!body.contains("<userId>")) {
+    log.error("SOAP session exchange failed")
+    log.error(body)
+    AssertionResult.setFailure(true)
+    return
+}
+
+// Extract sessionId issued for UI
+def sessionId = (body =~ /<sessionId>(.*?)<\/sessionId>/)[0][1]
+vars.put("sf_ui_session", sessionId)
+
+log.info("UI-capable sessionId obtained")
