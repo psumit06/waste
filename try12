@@ -1,0 +1,93 @@
+import com.microsoft.playwright.*;
+import org.apache.commons.csv.*;
+
+import java.io.*;
+import java.nio.file.*;
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+public class FrontendProbe {
+
+    static final String URL_FILE = "urls.txt";
+    static final int TEST_DURATION_MINUTES = 30;
+    static final int DELAY_BETWEEN_URLS_SEC = 5;
+    static final String OUTPUT_FILE = "results.csv";
+
+    public static void main(String[] args) throws Exception {
+
+        List<String> urls = loadUrls(URL_FILE);
+        long endTimeMillis = System.currentTimeMillis()
+                + TimeUnit.MINUTES.toMillis(TEST_DURATION_MINUTES);
+
+        try (
+                BufferedWriter writer = Files.newBufferedWriter(Paths.get(OUTPUT_FILE));
+                CSVPrinter csvPrinter = new CSVPrinter(writer,
+                        CSVFormat.DEFAULT.withHeader(
+                                "timestamp", "url", "page_load_time_ms"))
+        ) {
+
+            try (Playwright playwright = Playwright.create()) {
+                Browser browser = playwright.chromium().launch(
+                        new BrowserType.LaunchOptions().setHeadless(true)
+                );
+
+                BrowserContext context = browser.newContext();
+
+                while (System.currentTimeMillis() < endTimeMillis) {
+                    for (String url : urls) {
+                        if (System.currentTimeMillis() >= endTimeMillis) {
+                            break;
+                        }
+
+                        Page page = context.newPage();
+                        long startTime = System.currentTimeMillis();
+                        long loadTimeMs;
+
+                        try {
+                            page.navigate(url,
+                                    new Page.NavigateOptions()
+                                            .setWaitUntil(LoadState.LOAD)
+                                            .setTimeout(60000)
+                            );
+                            loadTimeMs = System.currentTimeMillis() - startTime;
+                        } catch (Exception e) {
+                            loadTimeMs = -1; // failure
+                        }
+
+                        csvPrinter.printRecord(
+                                Instant.now().toString(),
+                                url,
+                                loadTimeMs
+                        );
+                        csvPrinter.flush();
+
+                        page.close();
+                        TimeUnit.SECONDS.sleep(DELAY_BETWEEN_URLS_SEC);
+                    }
+                }
+
+                browser.close();
+            }
+        }
+    }
+
+    private static List<String> loadUrls(String filePath) throws IOException {
+        List<String> urls = new ArrayList<>();
+
+        if (filePath.endsWith(".csv")) {
+            try (Reader reader = Files.newBufferedReader(Paths.get(filePath))) {
+                CSVParser parser = CSVFormat.DEFAULT
+                        .withFirstRecordAsHeader()
+                        .parse(reader);
+                for (CSVRecord record : parser) {
+                    urls.add(record.get("url").trim());
+                }
+            }
+        } else {
+            urls = Files.readAllLines(Paths.get(filePath));
+            urls.removeIf(String::isBlank);
+        }
+        return urls;
+    }
+}
