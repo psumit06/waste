@@ -5,17 +5,24 @@ import org.apache.http.entity.StringEntity
 def accessToken = vars.get("sf_access_token")
 def instanceUrl = vars.get("sf_instance_url")
 
+if (!accessToken || !instanceUrl) {
+    log.error("Missing access token or instance URL")
+    SampleResult.setSuccessful(false)
+    return
+}
+
 def soapEndpoint = instanceUrl + "/services/Soap/u/58.0"
 
 def soapBody = """
-<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"
+              xmlns:urn="urn:partner.soap.sforce.com">
  <env:Header>
-  <urn:SessionHeader xmlns:urn="urn:partner.soap.sforce.com">
+  <urn:SessionHeader>
     <urn:sessionId>${accessToken}</urn:sessionId>
   </urn:SessionHeader>
  </env:Header>
  <env:Body>
-  <urn:getUserInfo xmlns:urn="urn:partner.soap.sforce.com"/>
+  <urn:getUserInfo/>
  </env:Body>
 </env:Envelope>
 """
@@ -23,21 +30,30 @@ def soapBody = """
 def client = HttpClients.createDefault()
 def post = new HttpPost(soapEndpoint)
 
-post.setHeader("Content-Type", "text/xml")
+post.setHeader("Content-Type", "text/xml; charset=UTF-8")
 post.setEntity(new StringEntity(soapBody, "UTF-8"))
 
 def response = client.execute(post)
-def body = response.getEntity().getContent().getText()
+def responseBody = response.getEntity().getContent().getText()
 
-if (!body.contains("<userId>")) {
+log.info("SOAP Response: " + responseBody)
+
+// ---- VALIDATE ----
+if (!responseBody.contains("<userId>")) {
     log.error("SOAP session exchange failed")
-    log.error(body)
-    AssertionResult.setFailure(true)
+    SampleResult.setSuccessful(false)
     return
 }
 
-// Extract sessionId issued for UI
-def sessionId = (body =~ /<sessionId>(.*?)<\/sessionId>/)[0][1]
-vars.put("sf_ui_session", sessionId)
+// ---- EXTRACT UI SESSION ----
+def matcher = (responseBody =~ /<sessionId>(.*?)<\/sessionId>/)
+if (!matcher.find()) {
+    log.error("sessionId not found in SOAP response")
+    SampleResult.setSuccessful(false)
+    return
+}
+
+def uiSessionId = matcher.group(1)
+vars.put("sf_ui_session", uiSessionId)
 
 log.info("UI-capable sessionId obtained")
