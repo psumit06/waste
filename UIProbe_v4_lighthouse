@@ -67,6 +67,7 @@ def run_lighthouse(url, timestamp):
     json_report = f"{LIGHTHOUSE_OUTPUT_DIR}/{safe_name}_{ts}.json"
 
     command = [
+        "npx",
         "lighthouse",
         url,
         "--quiet",
@@ -98,6 +99,12 @@ def main():
     url_load_timings = defaultdict(list)
     bucketed_load_timings = defaultdict(lambda: defaultdict(list))
     bucketed_lcp_timings = defaultdict(lambda: defaultdict(list))
+
+    # --------- RUN LIGHTHOUSE ONCE PER URL (STARTUP PHASE) ----------
+    if ENABLE_LIGHTHOUSE:
+        print("Running Lighthouse audits (once per URL)...")
+        for url in urls:
+            run_lighthouse(url, datetime.utcnow())
 
     with open(RAW_RESULTS_FILE, "w", newline="") as raw_file:
         raw_writer = csv.writer(raw_file)
@@ -162,10 +169,6 @@ def main():
                           return value;
                         }
                         """)
-
-                        # --------- Lighthouse (Optional) ----------
-                        if ENABLE_LIGHTHOUSE:
-                            run_lighthouse(url, now)
 
                     except Exception:
                         pass
