@@ -64,6 +64,9 @@ def run_lighthouse(url, timestamp):
     os.makedirs(LIGHTHOUSE_OUTPUT_DIR, exist_ok=True)
     os.makedirs(CHROME_PROFILE_DIR, exist_ok=True)
 
+    # IMPORTANT: use npx.cmd on Windows
+    NPX_CMD = "npx.cmd"
+
     safe_name = url.replace("https://", "").replace("http://", "").replace("/", "_")
     ts = timestamp.strftime("%Y%m%d_%H%M%S")
 
@@ -72,7 +75,7 @@ def run_lighthouse(url, timestamp):
     )
 
     command = (
-        f'npx lighthouse "{url}" '
+        f'{NPX_CMD} lighthouse "{url}" '
         f'--chrome-flags="--headless --no-sandbox --disable-dev-shm-usage '
         f'--user-data-dir={CHROME_PROFILE_DIR}" '
         f'--disable-storage-reset '
@@ -88,17 +91,18 @@ def run_lighthouse(url, timestamp):
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        check=False   # IMPORTANT: Windows cleanup causes false failures
+        check=False
     )
 
     if os.path.exists(html_report):
         print(f"[Lighthouse] Report generated: {html_report}")
         if result.returncode != 0:
-            print("[Lighthouse WARNING] Non-zero exit (Windows Chrome cleanup issue)")
+            print("[Lighthouse WARNING] Non-zero exit (Windows cleanup issue)")
         return html_report
     else:
         print("[Lighthouse ERROR] Report not generated")
-        print(result.stderr)
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
         return None
 
 
