@@ -20,6 +20,7 @@ BUCKET_SIZE_MINUTES = 5
 
 ENABLE_LIGHTHOUSE = True
 LIGHTHOUSE_OUTPUT_DIR = "lighthouse_reports"
+CHROME_PROFILE_DIR = r"C:\lh_chrome_profile"
 
 RAW_RESULTS_FILE = "results.csv"
 SUMMARY_REPORT_FILE = "summary_report.csv"
@@ -57,37 +58,48 @@ def get_time_bucket(ts):
     )
 
 
+# ---------- Lighthouse Runner (Windows-safe) ----------
+
 def run_lighthouse(url, timestamp):
     os.makedirs(LIGHTHOUSE_OUTPUT_DIR, exist_ok=True)
+    os.makedirs(CHROME_PROFILE_DIR, exist_ok=True)
 
     safe_name = url.replace("https://", "").replace("http://", "").replace("/", "_")
     ts = timestamp.strftime("%Y%m%d_%H%M%S")
 
-    html_report = f"{LIGHTHOUSE_OUTPUT_DIR}/{safe_name}_{ts}.html"
-    json_report = f"{LIGHTHOUSE_OUTPUT_DIR}/{safe_name}_{ts}.json"
+    html_report = os.path.join(
+        LIGHTHOUSE_OUTPUT_DIR, f"{safe_name}_{ts}.html"
+    )
 
-    command = [
-        "npx",
-        "lighthouse",
-        url,
-        "--quiet",
-        "--chrome-flags=--headless",
-        f"--output-path={html_report}",
-        "--output=html",
-        "--output=json",
-        f"--json-path={json_report}"
-    ]
+    command = (
+        f'npx lighthouse "{url}" '
+        f'--chrome-flags="--headless --no-sandbox --disable-dev-shm-usage '
+        f'--user-data-dir={CHROME_PROFILE_DIR}" '
+        f'--disable-storage-reset '
+        f'--output=html '
+        f'--output-path="{html_report}"'
+    )
 
-    try:
-        subprocess.run(
-            command,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        return html_report, json_report
-    except Exception:
-        return None, None
+    print(f"[Lighthouse] Auditing {url}")
+
+    result = subprocess.run(
+        command,
+        shell=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False   # IMPORTANT: Windows cleanup causes false failures
+    )
+
+    if os.path.exists(html_report):
+        print(f"[Lighthouse] Report generated: {html_report}")
+        if result.returncode != 0:
+            print("[Lighthouse WARNING] Non-zero exit (Windows Chrome cleanup issue)")
+        return html_report
+    else:
+        print("[Lighthouse ERROR] Report not generated")
+        print(result.stderr)
+        return None
 
 
 # ---------- Main Logic ----------
@@ -99,12 +111,6 @@ def main():
     url_load_timings = defaultdict(list)
     bucketed_load_timings = defaultdict(lambda: defaultdict(list))
     bucketed_lcp_timings = defaultdict(lambda: defaultdict(list))
-
-    # --------- RUN LIGHTHOUSE ONCE PER URL (STARTUP PHASE) ----------
-    if ENABLE_LIGHTHOUSE:
-        print("Running Lighthouse audits (once per URL)...")
-        for url in urls:
-            run_lighthouse(url, datetime.utcnow())
 
     with open(RAW_RESULTS_FILE, "w", newline="") as raw_file:
         raw_writer = csv.writer(raw_file)
@@ -169,6 +175,10 @@ def main():
                           return value;
                         }
                         """)
+
+                        # --------- Lighthouse (Optional) ----------
+                        if ENABLE_LIGHTHOUSE:
+                            run_lighthouse(url, now)
 
                     except Exception:
                         pass
