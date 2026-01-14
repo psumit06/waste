@@ -1,5 +1,4 @@
 
-You said:
 import time
 import csv
 import math
