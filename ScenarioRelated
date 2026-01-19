@@ -1,0 +1,37 @@
+//--scenarios/login_journey.py
+def login_journey(page):
+    page.goto("https://example.com/login")
+    page.fill("#username", "test_user")
+    page.fill("#password", "password123")
+    page.click("button[type=submit]")
+    page.wait_for_selector("#dashboard")
+
+//--scenarios/add_to_cart_journey.py
+def add_to_cart_journey(page):
+    page.goto("https://example.com")
+    page.click(".product-card:first-child")
+    page.click("#add-to-cart")
+    page.wait_for_selector("#cart-count")
+
+//--scenarios/checkout_journey.py
+def checkout_journey(page):
+    page.goto("https://example.com/cart")
+    page.click("#checkout")
+    page.wait_for_selector("#order-confirmation")
+
+
+//--scenario_registry.py
+from scenarios.login_journey import login_journey
+from scenarios.add_to_cart_journey import add_to_cart_journey
+from scenarios.checkout_journey import checkout_journey
+
+SCENARIOS = {
+    "login": login_journey,
+    "add_to_cart": add_to_cart_journey,
+    "checkout": checkout_journey
+}
+
+//--scenarios.txt
+login
+add_to_cart
+checkout
