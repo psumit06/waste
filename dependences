@@ -1,0 +1,23 @@
+sudo dnf install -y \
+  atk \
+  at-spi2-atk \
+  cups-libs \
+  dbus-libs \
+  libX11 \
+  libXcomposite \
+  libXdamage \
+  libXrandr \
+  libxcb \
+  libxkbcommon \
+  mesa-libgbm \
+  alsa-lib \
+  nss \
+  pango \
+  cairo \
+  gtk3 \
+  libdrm \
+  libXcursor \
+  libXinerama \
+  libXScrnSaver \
+  liberation-fonts \
+  ca-certificates
