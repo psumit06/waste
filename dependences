@@ -21,3 +21,32 @@ sudo dnf install -y \
   libXScrnSaver \
   liberation-fonts \
   ca-certificates
+
+
+Enable EPEL repository:Bash
+sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm   # For RHEL 9
+# OR
+sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm   # For RHEL 8
+(RHEL 8 only) 
+
+Enable CodeReady Builder (required for some dependencies):Bashsudo subscription-manager repos --enable "codeready-builder-for-rhel-8-$(arch)-rpms"
+Update the package list:Bashsudo dnf update
+Install Chromium:Bashsudo dnf install chromium
+Launch Chromium:
+From the terminal: chromium or chromium-browser
+Or find it in your applications menu.
+
+
+Alternative: Using Snap (works on RHEL 7, 8, and 9)
+If you prefer a self-contained version with automatic updates (and often the latest Chromium build):
+
+Enable snapd:Bashsudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm   # For RHEL 9 (adjust for RHEL 8/7)
+sudo dnf upgrade
+sudo dnf install snapd
+sudo ln -s /var/lib/snapd/snap /snap
+sudo systemctl enable --now snapd.socket
+Install Chromium via snap:Bashsudo snap install chromium
+Launch it:Bashsnap run chromiumOr find it in the applications menu.
+
+Note: Snap versions are usually newer and update automatically, but they are larger and sandboxed.
+
