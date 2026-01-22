@@ -1,0 +1,16 @@
+sudo yum install -y \
+  atk \
+  cups-libs \
+  libXcomposite \
+  libXcursor \
+  libXdamage \
+  libXext \
+  libXi \
+  libXrandr \
+  libXScrnSaver \
+  libXtst \
+  pango \
+  alsa-lib \
+  gtk3 \
+  xorg-x11-fonts-Type1 \
+  xorg-x11-fonts-misc
