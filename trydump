@@ -1,3 +1,87 @@
+You have 3 CORRECT ways forward (choose ONE)
+
+I’ll list them from best → simplest.
+
+🥇 OPTION 1 (BEST): Install Playwright browsers WITHOUT Maven
+
+You do NOT actually need Maven on the server.
+
+Playwright Java internally ships a Node-based driver.
+
+✅ Do this instead
+
+Run your JAR once with this environment variable:
+
+export PLAYWRIGHT_BROWSERS_PATH=$HOME/ms-playwright
+java -jar yourapp.jar
+
+
+👉 On first run, Playwright will download Chromium here:
+
+~/ms-playwright/
+
+
+After that, future runs won’t download again.
+
+📌 This works even if:
+
+Maven ❌
+
+Node ❌
+
+npm ❌
+
+🥈 OPTION 2: Install Maven (if allowed)
+
+If you can install packages, do:
+
+sudo yum install -y maven
+
+
+Verify:
+
+mvn -v
+
+
+Then run:
+
+mvn -q exec:java \
+  -Dexec.mainClass=com.microsoft.playwright.CLI \
+  -Dexec.args="install chromium"
+
+
+📌 This is clean but often not allowed on prod RHEL.
+
+🥉 OPTION 3: Pre-install browsers elsewhere and COPY
+
+This is enterprise-friendly.
+
+On your laptop / build machine:
+mvn -q exec:java \
+  -Dexec.mainClass=com.microsoft.playwright.CLI \
+  -Dexec.args="install chromium"
+
+
+This creates:
+
+~/.cache/ms-playwright/
+
+Copy to RHEL:
+scp -r ~/.cache/ms-playwright user@rhel:/opt/ms-playwright
+
+On RHEL before running JAR:
+export PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+java -jar yourapp.jar
+
+
+✔ No Maven
+✔ No downloads on server
+✔ Deterministic
+
+🔧 REQUIRED RHEL LIBRARIES (DO NOT SKIP)
+
+Regardless of option, Chromium WILL FAIL without these:
+
 sudo yum install -y \
   atk \
   cups-libs \
@@ -14,3 +98,35 @@ sudo yum install -y \
   gtk3 \
   xorg-x11-fonts-Type1 \
   xorg-x11-fonts-misc
+
+✅ Minimal checklist (print this)
+
+✔ Java installed
+✔ CSV inside src/main/resources
+✔ JAR built with Shade plugin
+✔ PLAYWRIGHT_BROWSERS_PATH set
+✔ RHEL system libs installed
+
+🧠 Important truth (senior-level insight)
+
+Playwright + Linux + fat JAR = browsers must live OUTSIDE the JAR
+
+Anyone claiming “everything inside one JAR” on Linux is lying 😄
+Even Microsoft doesn’t do that.
+
+🔥 My recommendation for YOU (based on your use case)
+
+Given you’re building synthetic monitoring / headless automation:
+
+👉 Option 3 (pre-install + copy)
+It’s what SREs actually do in enterprises.
+
+If you want next, I can:
+
+Give you a ready-to-use RHEL startup script
+
+Provide a Dockerfile (best long-term)
+
+Help convert this into a systemd service
+
+Make it run hourly / continuously
