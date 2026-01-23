@@ -1,0 +1,3 @@
+sudo dnf groupinstall "Development Tools"
+sudo dnf install openssl-devel bzip2-devel zlib-devel \
+readline-devel sqlite-devel libffi-devel xz-devel
