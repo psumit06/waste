@@ -1,0 +1,16 @@
+def purge_inbox(email):
+    log(f"🧹 Purging Mailsac inbox for {email}...")
+
+    r = requests.get(
+        f"https://mailsac.com/api/addresses/{email}/messages",
+        headers=MAILSAC_HEADERS,
+        timeout=20,
+    )
+
+    r.raise_for_status()
+    messages = r.json()
+
+    for msg in messages:
+        delete_message(email, msg["_id"])
+
+    log(f"✅ Purged {len(messages)} messages for {email}")
