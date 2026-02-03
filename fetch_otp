@@ -1,0 +1,32 @@
+def fetch_otp(email):
+    log(f"Waiting for OTP email in {email}...")
+
+    body = wait_for_email(
+        email,
+        lambda msg, txt: (
+            "salesforce" in msg["from"][0]["address"].lower()
+            and (
+                re.search(r"Verification Code:\s*\d{6}", txt, re.I)
+                or re.search(r"\b\d{6}\b", txt)
+            )
+        ),
+        OTP_TIMEOUT,
+    )
+
+    # PRIMARY — exact format
+    match = re.search(r"Verification Code:\s*(\d{6})", body, re.I)
+
+    # FALLBACK — any 6 digit number
+    if not match:
+        match = re.search(r"\b(\d{6})\b", body)
+
+    if not match:
+        raise RuntimeError(
+            "OTP not found in email body:\n"
+            + body[:500]
+        )
+
+    otp = match.group(1)
+
+    log(f"OTP received: {otp}")
+    return otp
