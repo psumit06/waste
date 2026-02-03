@@ -1,0 +1,56 @@
+if args.mode == "url":
+
+    urls = load_urls(args.urls)
+
+    while time.time() < end_time:
+        for url in urls:
+
+            page = ctx.new_page()
+            observer = StepObserver()
+
+            observer.start_step("load")
+
+            status = "SUCCESS"
+            start = time.time()
+
+            try:
+                page.goto(url)
+                page.wait_for_load_state("networkidle")
+
+                s = observer.end_step(page)
+
+                step_timings[(url, "load")].append(s["duration_ms"])
+
+                step_writer.writerow([
+                    datetime.utcnow().isoformat(),
+                    args.env,
+                    RUN_ID,
+                    url,
+                    "load",
+                    s["duration_ms"],
+                    s["fcp"],
+                    s["lcp"],
+                    s["cls"],
+                    "SUCCESS",
+                    ""
+                ])
+
+            except Exception:
+                status = "FAILURE"
+
+            total = int((time.time() - start) * 1000)
+
+            journey_timings[url].append(total)
+
+            journey_writer.writerow([
+                datetime.utcnow().isoformat(),
+                args.env,
+                RUN_ID,
+                url,
+                status,
+                total,
+                ""
+            ])
+
+            page.close()
+            time.sleep(args.delay)
