@@ -1,0 +1,17 @@
+log("Attempting to click Reset Security Token...")
+
+try:
+    reset_btn = page.locator("input[value='Reset Security Token']")
+    reset_btn.scroll_into_view_if_needed()
+    reset_btn.wait_for(state="visible", timeout=30000)
+    reset_btn.click(timeout=5000)
+
+except:
+    log("Normal click failed — using JS")
+
+    page.evaluate("""
+    () => {
+      const btn = document.querySelector("input[value='Reset Security Token']");
+      if (btn) btn.click();
+    }
+    """)
