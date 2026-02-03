@@ -1,0 +1,10 @@
+def save_token(username, token):
+    file_exists = os.path.exists(TOKEN_OUT_FILE)
+
+    with open(TOKEN_OUT_FILE, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+
+        if not file_exists:
+            writer.writerow(["username", "token"])
+
+        writer.writerow([username, token])
