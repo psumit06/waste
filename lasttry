@@ -1,0 +1,28 @@
+log("Clicking Reset Security Token inside iframe...")
+
+frame = page.frame_locator("iframe[id^='vfFrameId']")
+
+reset_btn = frame.get_by_role("button", name="Reset Security Token")
+
+reset_btn.wait_for(timeout=30000)
+reset_btn.click()
+//////////////////////////////
+
+frame = page.frame_locator("iframe")
+
+reset_btn = frame.get_by_role("button", name="Reset Security Token")
+
+reset_btn.first.wait_for(timeout=30000)
+reset_btn.first.click()
+////////////////////////////////////
+
+log("Waiting for Reset Security Token iframe...")
+
+frame = page.frame_locator("iframe[id*='vfFrameId'], iframe[src*='ResetApiToken']")
+
+reset_btn = frame.get_by_role("button", name="Reset Security Token")
+
+reset_btn.wait_for(timeout=30000)
+reset_btn.click()
+
+
