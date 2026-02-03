@@ -14,3 +14,19 @@ def purge_inbox(email):
         delete_message(email, msg["_id"])
 
     log(f"✅ Purged {len(messages)} messages for {email}")
+
+/////////////////
+
+def delete_message(email, message_id):
+    url = f"https://mailsac.com/api/addresses/{email}/messages/{message_id}"
+
+    r = requests.delete(
+        url,
+        headers=MAILSAC_HEADERS,
+        timeout=20,
+    )
+
+    if r.status_code not in (200, 204):
+        log(f"⚠️ Failed to delete message {message_id}: {r.status_code}")
+    else:
+        log(f"🧹 Deleted message {message_id}")
