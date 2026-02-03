@@ -1,0 +1,33 @@
+def fetch_security_token(email):
+    log(f"Waiting for security token email in {email}...")
+
+    body = wait_for_email(
+        email,
+        lambda msg, txt: (
+            "salesforce" in msg["from"][0]["address"].lower()
+            and (
+                re.search(r"Security token", txt, re.I)
+                or "security token" in (msg.get("subject") or "").lower()
+            )
+        ),
+        TOKEN_TIMEOUT,
+    )
+
+    # Primary pattern from screenshot
+    match = re.search(
+        r"Security token\s*\(case-sensitive\):\s*([A-Za-z0-9]+)",
+        body,
+        re.I,
+    )
+
+    # Fallback older format
+    if not match:
+        match = re.search(r"token\s+is\s+([A-Za-z0-9]+)", body, re.I)
+
+    if not match:
+        raise RuntimeError("Security token not found in email body")
+
+    token = match.group(1)
+
+    log(f"New token: {token}")
+    return token
