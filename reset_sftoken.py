@@ -2,18 +2,19 @@ import os
 import re
 import time
 import sys
+import csv
 import requests
 from playwright.sync_api import sync_playwright, TimeoutError
 
 # ---------------- CONFIG ---------------- #
 
-SF_USERNAME = os.environ["SF_USERNAME"]
+CSV_FILE = os.environ.get("SF_USER_CSV", "sf_users.csv")
+
 SF_PASSWORD = os.environ["SF_PASSWORD"]
 SF_SANDBOX_URL = os.environ["SF_SANDBOX_URL"]
 SF_DOMAIN = os.environ["SF_DOMAIN"]
 
 MAILSAC_API_KEY = os.environ["MAILSAC_API_KEY"]
-MAILSAC_EMAIL = os.environ["MAILSAC_EMAIL"]
 
 MAILSAC_HEADERS = {
     "Mailsac-Key": MAILSAC_API_KEY,
@@ -31,9 +32,20 @@ def log(msg):
     print(f"[+] {msg}", flush=True)
 
 
-def get_latest_message():
+def load_users_from_csv():
+    with open(CSV_FILE, newline="") as f:
+        reader = csv.DictReader(f)
+        users = list(reader)
+
+    if not users:
+        raise RuntimeError("CSV contains no users")
+
+    return users
+
+
+def get_latest_message(email):
     r = requests.get(
-        f"https://mailsac.com/api/addresses/{MAILSAC_EMAIL}/messages",
+        f"https://mailsac.com/api/addresses/{email}/messages",
         headers=MAILSAC_HEADERS,
         timeout=20,
     )
@@ -42,9 +54,9 @@ def get_latest_message():
     return messages[0] if messages else None
 
 
-def get_message_text(message_id):
+def get_message_text(email, message_id):
     r = requests.get(
-        f"https://mailsac.com/api/text/{MAILSAC_EMAIL}/{message_id}",
+        f"https://mailsac.com/api/text/{email}/{message_id}",
         headers=MAILSAC_HEADERS,
         timeout=20,
     )
@@ -52,14 +64,14 @@ def get_message_text(message_id):
     return r.text
 
 
-def wait_for_email(match_fn, timeout):
+def wait_for_email(email, match_fn, timeout):
     start = time.time()
 
     while time.time() - start < timeout:
-        msg = get_latest_message()
+        msg = get_latest_message(email)
 
         if msg:
-            body = get_message_text(msg["_id"])
+            body = get_message_text(email, msg["_id"])
             if match_fn(msg, body):
                 return body
 
@@ -68,10 +80,11 @@ def wait_for_email(match_fn, timeout):
     raise RuntimeError("Timed out waiting for email")
 
 
-def fetch_otp():
-    log("Waiting for OTP email...")
+def fetch_otp(email):
+    log(f"Waiting for OTP email in {email}...")
 
     body = wait_for_email(
+        email,
         lambda msg, txt: (
             "salesforce" in msg["from"][0]["address"].lower()
             and re.search(r"\b\d{6}\b", txt)
@@ -84,10 +97,11 @@ def fetch_otp():
     return otp
 
 
-def fetch_security_token():
-    log("Waiting for security token email...")
+def fetch_security_token(email):
+    log(f"Waiting for security token email in {email}...")
 
     body = wait_for_email(
+        email,
         lambda msg, txt: (
             "token" in (msg.get("subject") or "").lower()
             or re.search(r"security token", txt, re.I)
@@ -106,34 +120,40 @@ def fetch_security_token():
 
 # ---------------- MAIN ---------------- #
 
-def main():
+def rotate_user(user):
+    sf_username = user["username"]
+    mailsac_email = user["email"]
+
+    log("=" * 60)
+    log(f"Rotating token for: {sf_username}")
+    log(f"Inbox: {mailsac_email}")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
 
-        log("Opening Salesforce login page...")
         page.goto(SF_SANDBOX_URL)
 
-        page.fill("#username", SF_USERNAME)
+        page.fill("#username", sf_username)
         page.fill("#password", SF_PASSWORD)
         page.click("#Login")
 
         log("Waiting for MFA screen...")
+
         try:
             page.wait_for_selector(
                 'input[type="tel"], input[name="otp"]', timeout=30000
             )
         except TimeoutError:
-            log("MFA screen not detected — exiting.")
-            sys.exit(1)
+            log("❌ MFA screen not detected — skipping user.")
+            browser.close()
+            return
 
-        otp = fetch_otp()
+        otp = fetch_otp(mailsac_email)
 
         page.fill('input[type="tel"], input[name="otp"]', otp)
         page.click('button:has-text("Verify"), input[value="Verify"]')
-
-        log("OTP submitted.")
 
         page.wait_for_url(re.compile("lightning.force.com"), timeout=60000)
 
@@ -154,12 +174,23 @@ def main():
         except TimeoutError:
             pass
 
-        token = fetch_security_token()
+        token = fetch_security_token(mailsac_email)
 
-        log("\nSUCCESS — TOKEN RESET COMPLETE")
+        log(f"🎉 TOKEN ROTATED for {sf_username}")
         log(token)
 
         browser.close()
+
+
+def main():
+    users = load_users_from_csv()
+    log(f"Loaded {len(users)} users from CSV.")
+
+    for user in users:
+        try:
+            rotate_user(user)
+        except Exception as e:
+            log(f"❌ FAILED for {user['username']}: {e}")
 
 
 if __name__ == "__main__":
