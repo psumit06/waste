@@ -1,7 +1,6 @@
 import os
 import re
 import time
-import sys
 import csv
 import requests
 from playwright.sync_api import sync_playwright, TimeoutError
@@ -10,7 +9,6 @@ from playwright.sync_api import sync_playwright, TimeoutError
 
 CSV_FILE = os.environ.get("SF_USER_CSV", "sf_users.csv")
 
-SF_PASSWORD = os.environ["SF_PASSWORD"]
 SF_SANDBOX_URL = os.environ["SF_SANDBOX_URL"]
 SF_DOMAIN = os.environ["SF_DOMAIN"]
 
@@ -32,6 +30,14 @@ def log(msg):
     print(f"[+] {msg}", flush=True)
 
 
+def derive_mailsac_email(username: str) -> str:
+    """
+    Default: inbox == SF username.
+    Override this if needed.
+    """
+    return username.strip().lower()
+
+
 def load_users_from_csv():
     with open(CSV_FILE, newline="") as f:
         reader = csv.DictReader(f)
@@ -39,6 +45,10 @@ def load_users_from_csv():
 
     if not users:
         raise RuntimeError("CSV contains no users")
+
+    required = {"username", "password"}
+    if not required.issubset(reader.fieldnames):
+        raise RuntimeError("CSV must contain: username,password")
 
     return users
 
@@ -121,8 +131,10 @@ def fetch_security_token(email):
 # ---------------- MAIN ---------------- #
 
 def rotate_user(user):
-    sf_username = user["username"]
-    mailsac_email = user["email"]
+    sf_username = user["username"].strip()
+    sf_password = user["password"].strip()
+
+    mailsac_email = derive_mailsac_email(sf_username)
 
     log("=" * 60)
     log(f"Rotating token for: {sf_username}")
@@ -136,7 +148,7 @@ def rotate_user(user):
         page.goto(SF_SANDBOX_URL)
 
         page.fill("#username", sf_username)
-        page.fill("#password", SF_PASSWORD)
+        page.fill("#password", sf_password)
         page.click("#Login")
 
         log("Waiting for MFA screen...")
@@ -155,7 +167,7 @@ def rotate_user(user):
         page.fill('input[type="tel"], input[name="otp"]', otp)
         page.click('button:has-text("Verify"), input[value="Verify"]')
 
-        page.wait_for_url(re.compile("lightning.force.com"), timeout=60000)
+        page.wait_for_url(r"lightning.force.com", timeout=60000)
 
         reset_url = (
             f"https://{SF_DOMAIN}.lightning.force.com/"
