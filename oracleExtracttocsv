@@ -1,0 +1,94 @@
+import oracledb
+import csv
+import json
+import re
+
+# ===========================
+# ORACLE CONFIG
+# ===========================
+
+DB_CONFIG = {
+    "user": "myuser",
+    "password": "mypassword",
+    "dsn": "10.20.30.40:1521/ORCLPDB1"
+}
+
+# ===========================
+# SQL QUERY
+# ===========================
+
+QUERY = """
+select order_uuid, resp_xml
+from payment_sampletable
+where message_type='A'
+"""
+
+OUTPUT_FILE = "merchant_orders.csv"
+
+
+# ===========================
+# JSON EXTRACTION FUNCTION
+# ===========================
+
+def extract_fields(raw_text):
+    """
+    Handles JSON or JSON embedded in CLOB/text
+    """
+
+    try:
+        data = json.loads(raw_text)
+    except Exception:
+        # fallback regex if not pure json
+        merchant = re.search(r'"merchantOrderNumber"\s*:\s*"([^"]+)"', raw_text)
+        period = re.search(r'"periodStartTime"\s*:\s*"([^"]+)"', raw_text)
+
+        return (
+            merchant.group(1) if merchant else None,
+            period.group(1) if period else None
+        )
+
+    return (
+        data.get("merchantOrderNumber"),
+        data.get("periodStartTime")
+    )
+
+
+# ===========================
+# MAIN EXPORT LOGIC
+# ===========================
+
+def export_csv():
+
+    conn = oracledb.connect(**DB_CONFIG)
+    cur = conn.cursor()
+
+    print("Executing query...")
+    cur.execute(QUERY)
+
+    rows = cur.fetchall()
+
+    with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["merchantOrderNumber", "periodStartTime"])
+
+        for row in rows:
+
+            raw_payload = row[1]
+
+            merchant, period = extract_fields(raw_payload)
+
+            if merchant and period:
+                writer.writerow([merchant, period])
+
+    cur.close()
+    conn.close()
+
+    print(f"✅ CSV generated: {OUTPUT_FILE}")
+
+
+# ===========================
+# RUN
+# ===========================
+
+if __name__ == "__main__":
+    export_csv()
