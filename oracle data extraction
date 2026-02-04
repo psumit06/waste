@@ -1,0 +1,103 @@
+import oracledb
+import csv
+import pandas as pd
+from datetime import datetime
+
+# ================================
+# ORACLE CONNECTION CONFIG
+# ================================
+
+DB_CONFIG = {
+    "user": "myuser",
+    "password": "mypassword",
+    "dsn": "10.20.30.40:1521/ORCLPDB1"
+}
+
+# ================================
+# SQL QUERY
+# ================================
+
+QUERY = """
+SELECT
+    employee_id,
+    first_name,
+    last_name,
+    salary,
+    hire_date
+FROM employees
+"""
+
+RAW_FILE = "oracle_raw_output.csv"
+FORMATTED_FILE = "oracle_formatted_output.csv"
+
+
+# ================================
+# FETCH FROM ORACLE → CSV
+# ================================
+
+def fetch_and_store_csv():
+
+    print("Connecting to Oracle...")
+
+    connection = oracledb.connect(**DB_CONFIG)
+    cursor = connection.cursor()
+
+    print("Executing query...")
+    cursor.execute(QUERY)
+
+    columns = [col[0] for col in cursor.description]
+
+    rows = cursor.fetchall()
+
+    print(f"Fetched {len(rows)} rows")
+
+    # Write raw CSV
+    with open(RAW_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(columns)
+        writer.writerows(rows)
+
+    cursor.close()
+    connection.close()
+
+    print(f"Raw data saved to {RAW_FILE}")
+
+
+# ================================
+# FORMAT USING PYTHON
+# ================================
+
+def format_csv():
+
+    print("Formatting output...")
+
+    df = pd.read_csv(RAW_FILE)
+
+    # ---- Example Transformations ----
+
+    # Uppercase names
+    df["FIRST_NAME"] = df["FIRST_NAME"].str.upper()
+    df["LAST_NAME"] = df["LAST_NAME"].str.upper()
+
+    # Salary formatting
+    df["SALARY"] = df["SALARY"].apply(lambda x: f"{x:,.2f}")
+
+    # Date formatting
+    df["HIRE_DATE"] = pd.to_datetime(df["HIRE_DATE"]).dt.strftime("%Y-%m-%d")
+
+    # Add processing timestamp
+    df["PROCESSED_AT"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Save formatted file
+    df.to_csv(FORMATTED_FILE, index=False)
+
+    print(f"Formatted data saved to {FORMATTED_FILE}")
+
+
+# ================================
+# MAIN
+# ================================
+
+if __name__ == "__main__":
+    fetch_and_store_csv()
+    format_csv()
