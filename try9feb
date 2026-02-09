@@ -1,0 +1,27 @@
+sudo dnf install -y \
+  atk \
+  cups-libs \
+  gtk3 \
+  libXcomposite \
+  libXcursor \
+  libXdamage \
+  libXext \
+  libXi \
+  libXrandr \
+  libXScrnSaver \
+  libXtst \
+  pango \
+  alsa-lib \
+  libdrm \
+  mesa-libgbm \
+  nss \
+  xorg-x11-server-Xvfb \
+  liberation-fonts
+
+
+sudo dnf install -y ca-certificates
+sudo update-ca-trust
+
+
+sudo dnf install -y xorg-x11-server-Xvfb liberation-fonts nss gtk3
+xvfb-run python run_ebill.py
