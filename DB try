@@ -1,0 +1,31 @@
+CREATE TEMP TABLE stage_invoice_numbers
+(
+    invoice_number TEXT
+);
+
+load to temp:
+COPY stage_invoice_numbers(invoice_number)
+FROM '/path/invoice_file.csv'
+DELIMITER ','
+CSV;
+
+CREATE INDEX idx_stage_invoice_number
+ON stage_invoice_numbers(invoice_number);
+
+CREATE INDEX idx_patient_bill_invoice_number
+ON patient_invoices.patient_bill(invoice_number);
+
+
+
+INSERT INTO patient_invoices.patient_bill_delete
+SELECT
+    pb.*,
+    NOW() AS deletion_date,
+    'AR' AS deletion_type
+FROM
+(
+    DELETE FROM patient_invoices.patient_bill pb
+    USING stage_invoice_numbers s
+    WHERE pb.invoice_number = s.invoice_number
+    RETURNING pb.*
+) pb;
