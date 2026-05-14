@@ -1,0 +1,20 @@
+def build_prompt(api_spec, config):
+
+    prompt = f"""
+Convert this API specification into a valid JMeter JMX test plan.
+
+Users: {config.users}
+Ramp-up: {config.ramp_up}
+Duration: {config.duration}
+
+Requirements:
+- Add HTTP samplers
+- Add assertions
+- Add correlation where needed
+- Output ONLY XML
+
+API SPEC:
+{api_spec}
+"""
+
+    return prompt
