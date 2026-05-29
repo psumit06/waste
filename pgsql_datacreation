@@ -1,0 +1,13 @@
+INSERT INTO ebill_delivery_configuration
+(
+    invoice_number,
+    deeplink,
+    eid,
+    date_created
+)
+SELECT
+    (8000000000 + gs)::varchar,
+    md5(random()::text) || md5(random()::text),
+    (1200000000 + gs)::varchar,
+    NOW()
+FROM generate_series(1,5000000) gs;
