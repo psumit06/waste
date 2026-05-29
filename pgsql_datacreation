@@ -12,4 +12,30 @@ SELECT
     NOW()
 FROM generate_series(1,5000000) gs;
 
+////////////////////////////////////////////////////////////////
 
+INSERT INTO ebill_delivery_configuration
+(
+    invoice_number,
+    deeplink,
+    eid,
+    date_created
+)
+SELECT
+    (8000000000 + gs)::varchar,
+    left(
+        replace(
+            replace(
+                md5(gs::text) ||
+                md5((gs+1)::text) ||
+                md5((gs+2)::text) ||
+                md5((gs+3)::text),
+                'a','-'
+            ),
+            'b','_'
+        ),
+        101
+    ),
+    (1200000000 + gs)::varchar,
+    now()
+FROM generate_series(1,5000000) gs;
