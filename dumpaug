@@ -1,0 +1,18 @@
+Hi [Manager Name],
+
+I wanted to highlight a change impacting the AI-based JMeter Performance Test Script Generator POC.
+
+For the POC, I was using GitHub Models through a GitHub Personal Access Token (PAT) to access the LLM. However, GitHub Models is now being retired, so the existing integration can no longer be used going forward.
+
+As an alternative, I am exploring Microsoft Foundry for accessing the required LLM models. While checking the setup, it appears that using Foundry requires an Azure subscription and associated access/configuration.
+
+Could you please advise whether we can use Microsoft Foundry for this POC and, if yes, what would be the process for getting the required subscription/access?
+
+Specifically, I would need guidance on whether we already have an organizational Azure subscription that can be used for this purpose, or if a separate request/approval needs to be raised.
+
+Once the access is available, I can update the POC to replace the existing GitHub Models integration with Microsoft Foundry.
+
+Please let me know how you would like me to proceed.
+
+Thanks,
+Sumit
