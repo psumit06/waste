@@ -1,18 +1,33 @@
+Subject: RE: LLM Access for JMeter Script Generator POC
+
 Hi [Manager Name],
 
-I wanted to highlight a change impacting the AI-based JMeter Performance Test Script Generator POC.
+Thanks for the feedback. I agree that we should not have a hard dependency on any particular LLM/model.
 
-For the POC, I was using GitHub Models through a GitHub Personal Access Token (PAT) to access the LLM. However, GitHub Models is now being retired, so the existing integration can no longer be used going forward.
+Just wanted to clarify that the POC is already designed with this separation in mind. The current architecture is:
 
-As an alternative, I am exploring Microsoft Foundry for accessing the required LLM models. While checking the setup, it appears that using Foundry requires an Azure subscription and associated access/configuration.
+JMeter Script Generator
+        |
+        v
+   LLM Service
+        |
+   Provider Adapter + Model Configuration
+        |
+        +---- GitHub Models
+        +---- Internal/Enterprise AI API
+        +---- Other approved provider
 
-Could you please advise whether we can use Microsoft Foundry for this POC and, if yes, what would be the process for getting the required subscription/access?
+The JMeter Script Generator therefore does not have a hard dependency on GitHub Models or on any specific LLM. The provider and model are abstracted/configurable, so either can be changed without impacting the core script-generation functionality.
 
-Specifically, I would need guidance on whether we already have an organizational Azure subscription that can be used for this purpose, or if a separate request/approval needs to be raised.
+The current issue is slightly different. GitHub Models was being used as the programmatic LLM inference service/API, authenticated through PAT. With the existing option no longer being available to us, we need to identify an approved inference endpoint that the existing LLM service/provider adapter can connect to.
 
-Once the access is available, I can update the POC to replace the existing GitHub Models integration with Microsoft Foundry.
+I mentioned Microsoft Foundry only as a possible alternative inference provider, rather than introducing it as a dependency in the application design. Since Microsoft Foundry is not an approved option, we will not proceed with it.
 
-Please let me know how you would like me to proceed.
+I will also review the Confluence page shared. I noticed that it is specifically titled “GitHub Copilot Model Governance.” Could you please confirm whether the governance/approved models mentioned there also cover application/API-based LLM inference, or whether they are specifically for models available to developers within GitHub Copilot?
+
+This distinction is important for the POC because our requirement is for programmatic inference — the application needs to send prompts through an API and consume the LLM response. If the approved GitHub Copilot setup provides such an API/inference mechanism for internal applications, we can integrate it through the existing provider abstraction.
+
+Otherwise, could you please guide us on the approved service/API for application-level LLM inference that we should use?
 
 Thanks,
 Sumit
