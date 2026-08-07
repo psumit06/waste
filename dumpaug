@@ -31,3 +31,39 @@ Otherwise, could you please guide us on the approved service/API for application
 
 Thanks,
 Sumit
+
+
+┌─────────────────────────┐
+│  JMeter Script Generator │  HTML5/CSS3/JS Frontend
+│  (Frontend)              │
+└───────────┬─────────────┘
+            │ HTTP Request
+            ▼
+┌─────────────────────────┐
+│  FastAPI Backend         │  API Layer (routes_generate.py)
+│  Receives request,       │
+│  orchestrates pipeline   │
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  Core Pipeline           │  traffic_filter → correlation_engine
+│  (Processing Layers)     │  → logical_reconstructor → self_healing
+└───────────┬─────────────┘
+            │ Calls generate_text()
+            ▼
+┌─────────────────────────┐
+│  Provider Adapter        │  llm_provider.py
+│  (Single Module)         │
+│                          │
+│  • get_llm_config()      │  Resolves provider + model from .env
+│  • is_llm_available()    │  Validates credentials
+│  • generate_text()       │  Routes to provider
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  GitHub Models API       │  https://models.github.ai/inference
+│  (Inference Endpoint)    │  Auth: GITHUB_TOKEN (PAT)
+│  Model: openai/gpt-4o    │
+└─────────────────────────┘
