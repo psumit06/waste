@@ -1,0 +1,140 @@
+Hi Team,
+
+As part of the performance test planning, we need to finalize the **workload profile and transaction mix** for the Salesforce Sandbox/Stage environment.
+
+To ensure that the performance test workload is representative of the expected Production usage, could you please provide the following details, preferably based on **actual Production usage/log data** for the agreed peak/business-critical period?
+
+### 1. Stage vs Production Environment Comparison
+
+Please provide the comparison between **Stage/Sandbox and Production** for the major components and integrations, including:
+
+* Salesforce org/environment details and relevant configuration differences
+* Number of users / active users
+* Concurrent users during normal and peak periods
+* Application/API transaction volumes
+* Batch jobs and scheduled jobs
+* Integration endpoints and connected systems
+* Middleware/API gateway components, if applicable
+* Database/data-volume differences, where relevant
+* Number of records for major objects used by the application
+* Any configuration, feature, automation, workflow, or integration differences that could impact performance
+
+For each major component, it would be helpful to understand the **Stage-to-Production ratio**, for example:
+
+| Component                   | Stage/Sandbox | Production | Stage : Prod Ratio |
+| --------------------------- | ------------: | ---------: | -----------------: |
+| Active Users                |               |            |                    |
+| Concurrent Users            |               |            |                    |
+| API Transactions            |               |            |                    |
+| Major Business Transactions |               |            |                    |
+| Integration Calls           |               |            |                    |
+| Batch/Scheduled Jobs        |               |            |                    |
+| Data Volume                 |               |            |                    |
+
+### 2. Business Transaction / Workload Mix
+
+Please provide the Production transaction distribution for the major business flows.
+
+For each transaction/use case, please provide:
+
+* Transaction/use-case name
+* Average transactions per hour
+* Peak transactions per hour
+* Peak transactions per minute, if available
+* Percentage contribution to total workload
+* Expected concurrent users, if applicable
+* Business-criticality/prioritization
+* Any known peak time/window
+
+This will allow us to derive the **workload mix and transaction distribution** for the performance test.
+
+### 3. Inbound Flow – Peak Usage
+
+Please provide the **Inbound flow statistics from Production logs**, preferably for the highest-volume/peak business period.
+
+We are specifically looking for:
+
+* Peak inbound requests/transactions per minute
+* Peak inbound requests/transactions per hour
+* Average inbound volume
+* Peak duration
+* Number of concurrent inbound requests, if available
+* Transaction/API-wise breakdown
+* HTTP/API endpoint-wise volume, where applicable
+* Payload/message size, if relevant
+* Any spikes/bursts observed during the peak period
+
+If possible, please provide the **time-series/log data for the peak window** rather than only the daily average.
+
+### 4. Outbound Flow – Peak Usage
+
+Similarly, please provide the **Outbound flow statistics from Production logs**, including:
+
+* Peak outbound requests/transactions per minute
+* Peak outbound requests/transactions per hour
+* Average outbound volume
+* Peak duration
+* Number of concurrent outbound requests, if available
+* Destination-system/API-wise breakdown
+* Transaction/message type-wise distribution
+* Payload/message size, if relevant
+* Any observed spikes or burst traffic
+
+### 5. Peak Period / Business Events
+
+Please also confirm the business scenarios that drive the highest load, such as:
+
+* Start/end-of-day processing
+* Business-hour peaks
+* Month-end/quarter-end processing
+* Scheduled batch execution
+* Campaigns or high-volume business events
+* Integration synchronization windows
+* Any known traffic spikes
+
+If there are multiple peak patterns, please provide the corresponding volumes and time windows.
+
+### 6. Stage/Sandbox Limitations
+
+Since the application is deployed on a **Salesforce Sandbox**, please highlight any known differences or limitations between Sandbox and Production that could affect performance testing, such as:
+
+* Different Salesforce limits/configurations
+* Different data volumes
+* Reduced integration capacity
+* Mocked or stubbed external systems
+* Different middleware configuration
+* Different number of users
+* Different infrastructure/capacity
+* Disabled/enabled integrations or automation
+* Any throttling or rate limits specific to the Sandbox
+
+### 7. Expected Performance Test Target
+
+Finally, please confirm the expected Production workload/scale that the performance test should represent.
+
+In particular:
+
+**Normal Load:**
+
+* Expected transactions/minute or hour
+* Expected concurrency
+
+**Peak Load:**
+
+* Peak transactions/minute or hour
+* Peak concurrency
+* Expected peak duration
+
+**Stress/Capacity Load:**
+
+* Target multiplier over peak, if defined (e.g., 1.5x / 2x peak)
+
+---
+
+Once we have the above information, we can derive the **baseline workload profile, transaction mix, concurrency model, inbound/outbound traffic pattern, and peak-load distribution** for the performance test.
+
+If possible, please share the relevant **Production log extracts/reports for the peak period**, as these will provide a more accurate basis for workload modelling than averages.
+
+Thanks,
+Sumit
+Senior Performance Engineer
