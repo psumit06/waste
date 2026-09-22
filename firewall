@@ -1,0 +1,6 @@
+New-NetFirewallRule `
+    -DisplayName "FastAPI HTTPS 443" `
+    -Direction Inbound `
+    -Protocol TCP `
+    -LocalPort 443 `
+    -Action Allow
