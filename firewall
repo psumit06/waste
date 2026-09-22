@@ -1,2 +1,21 @@
-Get-CimInstance Win32_Process -Filter "ProcessId = 21520" |
-    Select-Object ProcessId, CommandLine
+App Name: AI Performance Script Generator – DEV
+
+Homepage URL:
+https://10.124.228.45
+
+Callback URL:
+https://10.124.228.45/github/callback
+
+Repository permissions:
+
+Contents: Read & Write
+Metadata: Read-only
+
+User authorization: Enabled
+
+Please provide the following after creating the app:
+
+GitHub App ID
+Client ID
+Client Secret
+Private Key (.pem)
