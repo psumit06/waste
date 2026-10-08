@@ -1,26 +1,29 @@
-from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+Hi [Name],
 
+Could you please update the GitHub Actions pipeline to handle the scenario where we have a data file containing **unique/non-repeatable records** that cannot be reused across JMeter slaves?
 
-# ================= PROMETHEUS PUSH =================
+Currently, the pipeline copies the same data file to all JMeter slaves. This causes the same records to be picked up by multiple slaves, resulting in duplicate data usage and errors during execution.
 
-registry = CollectorRegistry()
+The required behavior is:
 
-journey_gauge = Gauge(
-    "synthetic_journey_p90_ms",
-    "P90 journey duration",
-    ["env", "journey", "run_id"],
-    registry=registry
-)
+- Identify the data file that contains non-repeatable/unique records.
+- Determine the number of JMeter slaves participating in the test.
+- **Split/partition the file records equally (or as evenly as possible) across the slaves.**
+- Each slave should receive only its own subset of records.
+- There must be **no overlap of records between slaves**.
+- All records from the original file should be distributed across the slaves without losing or duplicating any record.
+- The pipeline should then copy the respective partition to each JMeter slave before starting the test.
+- Ideally, this should work dynamically based on the number of slaves, rather than having a hardcoded number of partitions.
 
-for journey, values in journey_timings.items():
-    journey_gauge.labels(
-        env=args.env,
-        journey=journey,
-        run_id=RUN_ID
-    ).set(int(percentile(values, 90)))
+For example, if the input file contains 1,000 unique records and we have 4 JMeter slaves:
 
-push_to_gateway(
-    "localhost:9091",
-    job="synthetic_monitor",
-    registry=registry
-)
+- Slave 1 → Records 1–250
+- Slave 2 → Records 251–500
+- Slave 3 → Records 501–750
+- Slave 4 → Records 751–1000
+
+If the records cannot be divided exactly equally, the distribution should be as even as possible while ensuring that **each record is assigned to exactly one slave**.
+
+Please also ensure that the existing behavior for scenarios where the same data file can safely be reused across slaves is not impacted.
+
+The main objective is: **unique records must be partitioned across JMeter slaves instead of the same file being copied to every slave.**
